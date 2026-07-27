@@ -3,6 +3,9 @@ name: Build and Push to ECR
 on:
   push:
     branches: [main]
+    paths :
+      - 'auth-service/**'
+      - '!auth-service/README.md'
 
 permissions:
   id-token: write     
@@ -15,6 +18,9 @@ env:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: auth-service
 
     steps:
       - name: Checkout code
