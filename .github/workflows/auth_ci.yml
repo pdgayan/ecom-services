@@ -13,7 +13,7 @@ permissions:
 
 env:
   AWS_REGION: us-east-1
-  ECR_REPOSITORY: test
+  ECR_REPOSITORY: auth-service
 
 jobs:
   build-and-push:
