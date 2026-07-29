@@ -14,14 +14,14 @@ function getCart(userId) {
 }
 
 // GET /cart/:userId
-app.get('/cart/:userId', (req, res) => {
+app.get('/cart/cart/:userId', (req, res) => {
   const cart = getCart(req.params.userId);
   const items = Object.values(cart);
   res.json({ userId: req.params.userId, items });
 });
 
 // POST /cart/:userId/add  — body: { productId, quantity }
-app.post('/cart/:userId/add', (req, res) => {
+app.post('/cart/cart/:userId/add', (req, res) => {
   const { productId, quantity = 1 } = req.body;
   if (!productId) return res.status(400).json({ error: 'productId is required' });
 
@@ -36,7 +36,7 @@ app.post('/cart/:userId/add', (req, res) => {
 });
 
 // DELETE /cart/:userId/remove/:productId
-app.delete('/cart/:userId/remove/:productId', (req, res) => {
+app.delete('/cart/cart/:userId/remove/:productId', (req, res) => {
   const { userId, productId } = req.params;
   const cart = getCart(userId);
 
@@ -49,7 +49,7 @@ app.delete('/cart/:userId/remove/:productId', (req, res) => {
 });
 
 // DELETE /cart/:userId/clear — clears entire cart (used after order placed)
-app.delete('/cart/:userId/clear', (req, res) => {
+app.delete('/cart/cart/:userId/clear', (req, res) => {
   carts[req.params.userId] = {};
   res.json({ userId: req.params.userId, items: [] });
 });
