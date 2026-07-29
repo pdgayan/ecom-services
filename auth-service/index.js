@@ -21,7 +21,7 @@ function generateToken(user) {
 }
 
 // POST /auth/login
-app.post('auth/login', (req, res) => {
+app.post('/auth/login', (req, res) => {
   const { username, password } = req.body;
   const user = users.find(u => u.username === username);
   if (!user) {
@@ -41,7 +41,7 @@ app.post('auth/login', (req, res) => {
 });
 
 // GET /verify — token passed via Authorization header: "Bearer <token>"
-app.get('auth/verify', (req, res) => {
+app.get('/auth/verify', (req, res) => {
   const authHeader = req.headers['authorization'] || '';
   const token = authHeader.replace('Bearer ', '').trim();
 
