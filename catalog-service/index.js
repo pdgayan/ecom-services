@@ -80,7 +80,7 @@ const products = [
   },
 ];
 
-// GET /products
+// GET /catalog/products
 app.get('/catalog/products', (req, res) => {
   res.json(products);
 });
