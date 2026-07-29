@@ -20,7 +20,7 @@ function generateToken(user) {
   return Buffer.from(payload).toString('base64');
 }
 
-// POST /login
+// POST /auth/login
 app.post('auth/login', (req, res) => {
   const { username, password } = req.body;
   const user = users.find(u => u.username === username);
