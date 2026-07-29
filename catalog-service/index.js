@@ -8,7 +8,7 @@ app.use(express.json());
 const products = [
   {
     id: 'p1',
-    name: 'Wireless Noise-Cancelling Headphones',
+    name: 'Wirelesse Noise-Cancelling Headphones',
     price: 79.99,
     category: 'Electronics',
     image_url: 'https://placehold.co/300x200?text=Headphones',
