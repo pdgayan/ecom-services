@@ -81,12 +81,12 @@ const products = [
 ];
 
 // GET /products
-app.get('/products', (req, res) => {
+app.get('/catalog/products', (req, res) => {
   res.json(products);
 });
 
 // GET /products/:id
-app.get('/products/:id', (req, res) => {
+app.get('/catalog/products/:id', (req, res) => {
   const product = products.find(p => p.id === req.params.id);
   if (!product) return res.status(404).json({ error: 'Product not found' });
   res.json(product);
