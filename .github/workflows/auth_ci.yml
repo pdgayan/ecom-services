@@ -24,7 +24,7 @@ jobs:
         working-directory: auth-service
 
     steps:
-      - name: Checkout code
+      - name: Checkout auth service code
         uses: actions/checkout@v4
 
       - name: Debug OIDC Token Claims
@@ -37,6 +37,8 @@ jobs:
             );
             console.log(payload);
 
+        
+        #auth and log to aws ecr 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -47,6 +49,8 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+      
+      # push the imge to aws ecr
       - name: Build, tag, and push image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -54,4 +58,30 @@ jobs:
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .          
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          
+         
+      # checkout the gitops repo code in to github runner
+      - name: Checkout gitops code
+        uses: actions/checkout@v4
+        with:
+          repository : pdgayan/ecom-gitops
+          token : ${{ secrets.GITOPS_REPO_TOKEN }}
+          path : gitops-repo
+      
+      #update the correct k8 menifest file using yc tool
+      - name: Install yq tool 
+        uses: mikefarah/yq@v4.44.3
+      
+      - name: update image tag in k8 manifest
+        run: |
+          yq -i '.spec.template.spec.containers[0].image = "${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}"' gitops-repo/auth-service/deployment.yml
+
+      
+      # commit and push the updated version in to repo 
+      - name: commit and push changes to gitops manifest (auth-deployment.yml image update)
+        working-directory: gitops-repo
+        run:  
+          git config user.name "ecom-deploy-bot"
+          git config user.email "ecom-deploy-bot@users.noreply.github.com"
+          git add auth-service/deployment.yml
+          git commit -m "Update auth-service image to ${{ github.sha }}"
+          git push 
