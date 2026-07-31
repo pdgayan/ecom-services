@@ -78,10 +78,9 @@ jobs:
       - name: Install yq tool 
         uses: mikefarah/yq@v4.44.3
       
-      - name: update image tag in k8 manifest        
+      - name: update image tag in k8 manifest
         run: |
-          yq -i '.spec.template.spec.containers[0].image = "${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}"' gitops-repo/auth-service/deployment.yml
-
+          yq -i '.spec.template.spec.containers[0].image = "${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}"' $GITHUB_WORKSPACE/gitops-repo/auth-service/deployment.yml
       
       # commit and push the updated version in to repo 
       - name: commit and push changes to gitops manifest (auth-deployment.yml image update)
