@@ -5,7 +5,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// product
+// products
 const products = [
   {
     id: 'p1',
