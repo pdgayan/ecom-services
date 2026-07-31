@@ -54,3 +54,32 @@ jobs:
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+        
+      # checkout the gitops repo code in to github runner
+      - name: Checkout gitops code
+        uses: actions/checkout@v4
+        with:
+          repository : pdgayan/ecom-gitops
+          token : ${{ secrets.GITOPS_REPO_TOKEN }}
+          path : gitops-repo
+      
+    
+      
+      #update the correct k8 menifest file using yc tool
+      - name: Install yq tool 
+        uses: mikefarah/yq@v4.44.3
+      
+      - name: update image tag in k8 manifest
+        run: |
+          yq -i '.spec.template.spec.containers[0].image = "${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}"' $GITHUB_WORKSPACE/gitops-repo/cart-service/deployment.yml
+      
+      # commit and push the updated version in to repo 
+      - name: commit and push changes to gitops manifest (auth-deployment.yml image update)
+        working-directory: gitops-repo
+        run: |
+          git config user.name "ecom-deploy-bot"
+          git config user.email "ecom-deploy-bot@users.noreply.github.com"
+          git add cart-service/deployment.yml
+          git commit -m "Update cart-service image to ${{ github.sha }}"
+          git push

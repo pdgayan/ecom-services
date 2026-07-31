@@ -15,7 +15,7 @@ app.post('/pay', (req, res) => {
 
   console.log(`[payment-service] Processing payment for order ${orderId}, amount: $${amount}`);
 
-  // Simulate async processing delay (500ms)
+  // Simulates async processing delay (500ms)
   setTimeout(() => {
     const transactionId = 'TXN-' + Math.random().toString(36).substring(2, 11).toUpperCase();
     console.log(`[payment-service] Payment SUCCESS — orderId: ${orderId}, txn: ${transactionId}`);

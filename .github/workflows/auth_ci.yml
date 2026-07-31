@@ -67,12 +67,17 @@ jobs:
           token : ${{ secrets.GITOPS_REPO_TOKEN }}
           path : gitops-repo
       
+
+
         #debug point to see exact path
-      - name: Debug - list files
-        run: |
-          pwd
-          ls -la
-          ls -la gitops-repo || echo "gitops-repo not found here"
+      # - name: Debug - list files
+      #   run: |
+      #     pwd
+      #     ls -la
+      #     ls -la gitops-repo || echo "gitops-repo not found here"
+
+
+      
       
       #update the correct k8 menifest file using yc tool
       - name: Install yq tool 
