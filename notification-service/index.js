@@ -13,7 +13,7 @@ app.post('/notify', (req, res) => {
     return res.status(400).json({ error: 'userId and message are required' });
   }
 
-  // Simulate sending an email/SMS — just log it
+  // Simulates sending an email/SMS — just log it
   console.log(`\n📧 [notification-service] NOTIFICATION`);
   console.log(`   To   : User ${userId}`);
   console.log(`   Msg  : ${message}`);
