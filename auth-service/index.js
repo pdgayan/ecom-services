@@ -7,8 +7,8 @@ app.use(express.json());
 
 // Hardcodeds test users — no real password validation
 const users = [
-  { id: 'u0001', username: 'alice', password: 'password', role: 'customer' },
-  { id: 'u0002', username: 'bob',   password: 'password', role: 'admin' },
+  { id: 'u001', username: 'alice', password: 'password', role: 'customer' },
+  { id: 'u002', username: 'bob',   password: 'password', role: 'admin' },
 ];
 
 // In-memory token -> user map (mock JWT)
