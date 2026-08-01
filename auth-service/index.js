@@ -5,7 +5,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Hardcodeds test users — no real password validation
+// Hardcoded test users — no real password validation
 const users = [
   { id: 'u001', username: 'alice', password: 'password', role: 'customer' },
   { id: 'u002', username: 'bob',   password: 'password', role: 'admin' },
