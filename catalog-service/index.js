@@ -142,7 +142,7 @@ const products = [
   },
   {
     id: 'prod-005',
-    name: 'Sentinel-9 Body Armor System',
+    name: 'Sentinels-9 Body Armor System',
     manufacturer: 'Orion Tactical Solutions',
     category: 'Personal Protection',
     categoryId: 'personal-protection',
