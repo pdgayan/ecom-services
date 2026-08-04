@@ -14,7 +14,9 @@ app.use(express.json());
 // Fetch DB credentials from AWS Secrets Manager
 // Uses IRSA automatically - no AWS keys needed here
 // ---------------------------------------------------
-const secretsClient = new SecretsManagerClient({ region: "us-east-1" });
+const secretsClient = new SecretsManagerClient({ 
+  region: process.env.AWS_REGION || "us-east-1" 
+});
 
 let dbCredentials = null;
 
