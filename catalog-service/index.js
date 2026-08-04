@@ -210,7 +210,8 @@ async function startServer() {
     await app.locals.knex.raw("select 1");
     console.log("Database connected");
   } catch (err) {
-    console.error("Failed to initialize database:", err);
+    // ---- ADD THIS LINE TO EXPOSE THE REAL AWS ERROR ----
+    console.error("Failed to initialize database details:", err);
     process.exit(1);
   }
 
