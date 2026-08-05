@@ -80,6 +80,6 @@ jobs:
           git config user.name "catalog-deploy-bot"
           git config user.email "catalog-deploy-bot@users.noreply.github.com"
           git add catalog-service/deployment.yml
-          git add catalog-service/catalog-migration.yml
+          git add catalog-service/migration_job.yml
           git commit -m "Update catalog-service image to ${{ github.sha }}"
           git push
