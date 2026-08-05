@@ -20,38 +20,42 @@ const secretsClient = new SecretsManagerClient({
 
 let dbCredentials = null;
 
-function hasLocalDbEnv() {
-  return Boolean(
-    process.env.DB_HOST &&
-    process.env.DB_PORT &&
-    process.env.DB_NAME &&
-    process.env.DB_USER &&
-    process.env.DB_PASSWORD,
-  );
-}
 
-async function getDbCredentials() {
-  if (dbCredentials) return dbCredentials; // cache in memory, avoid calling every request
+// ---------------------------------------------------
+// Resolve DB configuration
+// Host/Port/Database -> Kubernetes env vars
+// Username/Password -> AWS Secrets Manager
+// ---------------------------------------------------
+async function resolveDbConfig() {
+  if (!process.env.DB_HOST) {
+    throw new Error("DB_HOST environment variable is missing.");
+  }
 
-  const command = new GetSecretValueCommand({
-    SecretId: process.env.DB_SECRET_ARN, // comes from env var, set in deployment.yml
-  });
+  if (!process.env.DB_PORT) {
+    throw new Error("DB_PORT environment variable is missing.");
+  }
 
-  const response = await secretsClient.send(command);
-  dbCredentials = JSON.parse(response.SecretString);
-  // dbCredentials now has { username, password, ... }
-  return dbCredentials;
-}
+  if (!process.env.DB_NAME) {
+    throw new Error("DB_NAME environment variable is missing.");
+  }
 
-function normalizeDbConfig(source) {
+  if (!process.env.DB_SECRET_ARN) {
+    throw new Error("DB_SECRET_ARN environment variable is missing.");
+  }
+
+  const secret = await getDbCredentials();
+
+  console.log("Secret keys:", Object.keys(secret));
+
   return {
-    host: source.host || source.DB_HOST || source.hostname,
-    port: source.port || source.DB_PORT || 5432,
-    database: source.database || source.DB_NAME || source.dbname,
-    user: source.username || source.user || source.DB_USER,
-    password: source.password || source.DB_PASSWORD,
+    host: process.env.DB_HOST,
+    port: Number(process.env.DB_PORT),
+    database: process.env.DB_NAME,
+    user: secret.username,
+    password: secret.password,
   };
 }
+
 
 function buildProductPayload(body, existingId) {
   return {
@@ -184,14 +188,7 @@ function productRouter() {
   return router;
 }
 
-async function resolveDbConfig() {
-  if (hasLocalDbEnv()) {
-    return normalizeDbConfig(process.env);
-  }
 
-  const creds = await getDbCredentials();
-  return normalizeDbConfig(creds);
-}
 
 // ---------------------------------------------------
 // Example: fetch credentials once at startup
@@ -199,31 +196,44 @@ async function resolveDbConfig() {
 async function startServer() {
   try {
     const dbConfig = await resolveDbConfig();
+
+    console.log("========== DB CONFIG ==========");
+    console.log("Host:", dbConfig.host);
+    console.log("Port:", dbConfig.port);
+    console.log("Database:", dbConfig.database);
+    console.log("User:", dbConfig.user);
+    console.log("Password:", dbConfig.password ? "***" : "undefined");
+    console.log("===============================");
+
     process.env.DB_HOST = dbConfig.host;
-    process.env.DB_PORT = String(dbConfig.port || 5432);
+    process.env.DB_PORT = String(dbConfig.port);
     process.env.DB_NAME = dbConfig.database;
     process.env.DB_USER = dbConfig.user;
     process.env.DB_PASSWORD = dbConfig.password;
 
     const knex = require("knex");
     const knexConfig = require("./knexfile");
+
     app.locals.knex = knex(knexConfig);
 
-    await app.locals.knex.raw("select 1");
-    console.log("Database connected");
+    await app.locals.knex.raw("SELECT 1");
+
+    console.log("✅ Database connected successfully.");
   } catch (err) {
-    // ---- ADD THIS LINE TO EXPOSE THE REAL AWS ERROR ----
-    console.error("Failed to initialize database details:", err);
+    console.error("❌ Failed to initialize database:", err);
     process.exit(1);
   }
 
   app.use("/catalog", productRouter());
   app.use(productRouter());
 
-  const PORT = 4002;
-  app.listen(PORT, () =>
-    console.log(`catalog-service running on http://localhost:${PORT}`),
-  );
+  const PORT = process.env.PORT || 4002;
+
+  app.listen(PORT, () => {
+    console.log(`catalog-service running on port ${PORT}`);
+  });
 }
 
 startServer();
+
+
