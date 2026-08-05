@@ -214,7 +214,7 @@ function productRouter() {
 
 
 // ---------------------------------------------------
-// Example: fetch credentials once at startup
+// Examples: fetch credentials once at startup
 // ---------------------------------------------------
 async function startServer() {
   try {
