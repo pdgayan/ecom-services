@@ -4,8 +4,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'catalog-service/**'
-      - '!catalog-service/README.md'
+      - "catalog-service/**"
+      - "!catalog-service/README.md"
 
 permissions:
   id-token: write
@@ -54,32 +54,32 @@ jobs:
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .          
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          
 
       # checkout the gitops repo code in to github runner
       - name: Checkout gitops code
         uses: actions/checkout@v4
         with:
-          repository : pdgayan/ecom-gitops
-          token : ${{ secrets.GITOPS_REPO_TOKEN }}
-          path : gitops-repo
-      
-    
-      
+          repository: pdgayan/ecom-gitops
+          token: ${{ secrets.GITOPS_REPO_TOKEN }}
+          path: gitops-repo
+
       #update the correct k8 menifest file using yc tool
-      - name: Install yq tool 
+      - name: Install yq tool
         uses: mikefarah/yq@v4.44.3
-      
-      - name: update image tag in k8 manifest
+
+      - name: update image tag in deployments and jobs
         run: |
           yq -i '.spec.template.spec.containers[0].image = "${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}"' $GITHUB_WORKSPACE/gitops-repo/catalog-service/deployment.yml
-      
-      # commit and push the updated version in to repo 
+
+           yq -i '.spec.template.spec.containers[0].image = "${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}"' $GITHUB_WORKSPACE/gitops-repo/catalog-service/catalog-migration.yml
+
+      # commit and push the updated version in to repo
       - name: commit and push changes to gitops manifest (catalog-deployment.yml image update)
         working-directory: gitops-repo
         run: |
           git config user.name "catalog-deploy-bot"
           git config user.email "catalog-deploy-bot@users.noreply.github.com"
           git add catalog-service/deployment.yml
+          git add catalog-service/catalog-migration.yml
           git commit -m "Update catalog-service image to ${{ github.sha }}"
           git push
