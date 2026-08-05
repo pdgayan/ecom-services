@@ -1,6 +1,9 @@
 const express = require("express");
 const cors = require("cors");
 const crypto = require("crypto");
+const pg = require("pg");
+pg.types.setTypeParser(1700, (val) => (val === null ? null : parseFloat(val)));
+
 const {
   SecretsManagerClient,
   GetSecretValueCommand,
