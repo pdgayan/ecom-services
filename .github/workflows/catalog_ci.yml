@@ -71,7 +71,7 @@ jobs:
         run: |
           yq -i '.spec.template.spec.containers[0].image = "${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}"' $GITHUB_WORKSPACE/gitops-repo/catalog-service/deployment.yml
 
-           yq -i '.spec.template.spec.containers[0].image = "${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}"' $GITHUB_WORKSPACE/gitops-repo/catalog-service/catalog-migration.yml
+           yq -i '.spec.template.spec.containers[0].image = "${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}"' $GITHUB_WORKSPACE/gitops-repo/catalog-service/migration_job.yml
 
       # commit and push the updated version in to repo
       - name: commit and push changes to gitops manifest (catalog-deployment.yml image update)
