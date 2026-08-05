@@ -21,6 +21,26 @@ const secretsClient = new SecretsManagerClient({
 let dbCredentials = null;
 
 
+async function getDbCredentials() {
+  if (dbCredentials) {
+    return dbCredentials;
+  }
+
+  const command = new GetSecretValueCommand({
+    SecretId: process.env.DB_SECRET_ARN,
+  });
+
+  const response = await secretsClient.send(command);
+
+  if (!response.SecretString) {
+    throw new Error("Secret value is empty or binary, expected SecretString.");
+  }
+
+  dbCredentials = JSON.parse(response.SecretString);
+  return dbCredentials;
+}
+
+
 // ---------------------------------------------------
 // Resolve DB configuration
 // Host/Port/Database -> Kubernetes env vars
