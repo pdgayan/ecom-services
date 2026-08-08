@@ -228,7 +228,7 @@ function authRouter() {
     }
   });
 
-  // Get Profile
+  /// Get Profile
   router.get("/profile", authenticateToken, async (req, res) => {
     try {
       const knex = req.app.locals.knex;

@@ -5,7 +5,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// In-memory store: { [userId]: { [productId]: { productId, quantity } } }
+// In-memory stores: { [userId]: { [productId]: { productId, quantity } } }
 const carts = {};
 
 function getCart(userId) {
