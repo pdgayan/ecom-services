@@ -45,7 +45,7 @@ async function getDbCredentials() {
 
 
 // ---------------------------------------------------
-// Resolve DB configuration
+// Resolves DB configuration
 // Host/Port/Database -> Kubernetes env vars
 // Username/Password -> AWS Secrets Manager
 // ---------------------------------------------------

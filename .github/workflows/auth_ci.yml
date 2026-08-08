@@ -83,10 +83,12 @@ jobs:
       - name: Install yq tool 
         uses: mikefarah/yq@v4.44.3
       
-      - name: update image tag in k8 manifest
+      - name: update image tag in deployments and jobs
         run: |
           yq -i '.spec.template.spec.containers[0].image = "${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}"' $GITHUB_WORKSPACE/gitops-repo/auth-service/deployment.yml
-      
+          
+          yq -i '.spec.template.spec.containers[0].image = "${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}"' $GITHUB_WORKSPACE/gitops-repo/auth-service/migration_job.yml
+
       # commit and push the updated version in to repo 
       - name: commit and push changes to gitops manifest (auth-deployment.yml image update)
         working-directory: gitops-repo
@@ -94,5 +96,6 @@ jobs:
           git config user.name "ecom-deploy-bot"
           git config user.email "ecom-deploy-bot@users.noreply.github.com"
           git add auth-service/deployment.yml
+          git add auth-service/migration_job.yml
           git commit -m "Update auth-service image to ${{ github.sha }}"
           git push
