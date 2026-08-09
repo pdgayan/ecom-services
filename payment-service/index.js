@@ -5,7 +5,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// POSTs /pay — body: { orderIds, amount }
+// POST /pay — body: { orderIds, amount }
 app.post('/pay', (req, res) => {
   const { orderId, amount } = req.body;
 
