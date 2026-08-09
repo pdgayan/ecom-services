@@ -11,7 +11,7 @@ exports.up = async function (knex) {
 
     table.string("phone");
 
-    table.string("role").notNullable().defaultTo("customer");
+    table.string("role").notNullable().defaultTo("buyer");
 
     table.boolean("is_verified").notNullable().defaultTo(false);
 

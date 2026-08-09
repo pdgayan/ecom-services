@@ -17,13 +17,29 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-
 const secretsClient = new SecretsManagerClient({
   region: process.env.AWS_REGION || "us-east-1",
 });
 
 let dbCredentials = null;
 
+function normalizeRole(role) {
+  if (!role) {
+    return null;
+  }
+
+  const normalized = String(role).toLowerCase();
+
+  if (normalized === "buyer" || normalized === "customer") {
+    return "buyer";
+  }
+
+  if (normalized === "seller" || normalized === "admin") {
+    return "seller";
+  }
+
+  return null;
+}
 
 async function getDbCredentials() {
   if (dbCredentials) {
@@ -43,7 +59,6 @@ async function getDbCredentials() {
   dbCredentials = JSON.parse(response.SecretString);
   return dbCredentials;
 }
-
 
 async function resolveDbConfig() {
   if (!process.env.DB_HOST) {
@@ -75,8 +90,7 @@ async function resolveDbConfig() {
   };
 }
 
-
-function buildUserPayload(body, passwordHash, existingId) {
+function buildUserPayload(body, passwordHash, existingId, role = "buyer") {
   const now = new Date();
 
   return {
@@ -86,13 +100,13 @@ function buildUserPayload(body, passwordHash, existingId) {
     email: body.email,
     password_hash: passwordHash,
     phone: body.phone || null,
-    role: body.role || "customer",
-    is_verified: typeof body.is_verified === "boolean" ? body.is_verified : false,
+    role: normalizeRole(role) || "buyer",
+    is_verified:
+      typeof body.is_verified === "boolean" ? body.is_verified : false,
     created_at: now,
     updated_at: now,
   };
 }
-
 
 function sanitizeUser(user) {
   if (!user) {
@@ -102,7 +116,6 @@ function sanitizeUser(user) {
   const { password_hash, ...safeUser } = user;
   return safeUser;
 }
-
 
 function authenticateToken(req, res, next) {
   const authHeader = req.headers["authorization"];
@@ -119,16 +132,19 @@ function authenticateToken(req, res, next) {
 
   const token = parts[1];
 
-  jwt.verify(token, process.env.JWT_SECRET || "development-secret", (err, decoded) => {
-    if (err) {
-      return res.status(403).json({ message: "Invalid or expired token" });
-    }
+  jwt.verify(
+    token,
+    process.env.JWT_SECRET || "development-secret",
+    (err, decoded) => {
+      if (err) {
+        return res.status(403).json({ message: "Invalid or expired token" });
+      }
 
-    req.user = decoded;
-    next();
-  });
+      req.user = decoded;
+      next();
+    },
+  );
 }
-
 
 //apis
 
@@ -143,7 +159,7 @@ function authRouter() {
   // Register
   router.post("/register", async (req, res) => {
     try {
-      const { first_name, last_name, email, password } = req.body;
+      const { first_name, last_name, email, password, role } = req.body;
 
       if (!first_name || !last_name || !email || !password) {
         return res.status(400).json({
@@ -159,13 +175,24 @@ function authRouter() {
         return res.status(409).json({ message: "Email already exists" });
       }
 
+      const requestedRole = normalizeRole(role || "buyer");
+
+      if (!requestedRole) {
+        return res
+          .status(400)
+          .json({ message: "role must be buyer or seller" });
+      }
+
       const passwordHash = await bcrypt.hash(password, 10);
 
-      const payload = buildUserPayload(req.body, passwordHash);
+      const payload = buildUserPayload(
+        req.body,
+        passwordHash,
+        undefined,
+        requestedRole,
+      );
 
-      const [insertedUser] = await knex("users")
-        .insert(payload)
-        .returning("*");
+      const [insertedUser] = await knex("users").insert(payload).returning("*");
 
       res.status(201).json({
         message: "User registered successfully",
@@ -173,17 +200,29 @@ function authRouter() {
       });
     } catch (error) {
       console.error("Register error:", error);
-      res.status(500).json({ message: "Failed to register user", error: error.message });
+      res
+        .status(500)
+        .json({ message: "Failed to register user", error: error.message });
     }
   });
 
   // Login
   router.post("/login", async (req, res) => {
     try {
-      const { email, password } = req.body;
+      const { email, password, role } = req.body;
 
       if (!email || !password) {
-        return res.status(400).json({ message: "email and password are required" });
+        return res
+          .status(400)
+          .json({ message: "email and password are required" });
+      }
+
+      const requestedRole = normalizeRole(role || "buyer");
+
+      if (!requestedRole) {
+        return res
+          .status(400)
+          .json({ message: "role must be buyer or seller" });
       }
 
       const knex = req.app.locals.knex;
@@ -200,14 +239,22 @@ function authRouter() {
         return res.status(401).json({ message: "Invalid email or password" });
       }
 
+      const userRole = normalizeRole(user.role) || "buyer";
+
+      if (requestedRole !== userRole) {
+        return res.status(403).json({
+          message: `This account is registered as ${userRole}. Please log in with the correct role.`,
+        });
+      }
+
       const token = jwt.sign(
         {
           id: user.id,
           email: user.email,
-          role: user.role,
+          role: userRole,
         },
         process.env.JWT_SECRET || "development-secret",
-        { expiresIn: "1d" }
+        { expiresIn: "1d" },
       );
 
       res.json({
@@ -217,14 +264,16 @@ function authRouter() {
           first_name: user.first_name,
           last_name: user.last_name,
           email: user.email,
-          role: user.role,
+          role: userRole,
           phone: user.phone,
           is_verified: user.is_verified,
         },
       });
     } catch (error) {
       console.error("Login error:", error);
-      res.status(500).json({ message: "Failed to login", error: error.message });
+      res
+        .status(500)
+        .json({ message: "Failed to login", error: error.message });
     }
   });
 
@@ -242,7 +291,9 @@ function authRouter() {
       res.json({ message: "User Profile", user: sanitizeUser(user) });
     } catch (error) {
       console.error("Profile fetch error:", error);
-      res.status(500).json({ message: "Failed to fetch profile", error: error.message });
+      res
+        .status(500)
+        .json({ message: "Failed to fetch profile", error: error.message });
     }
   });
 
@@ -284,13 +335,14 @@ function authRouter() {
       });
     } catch (error) {
       console.error("Profile update error:", error);
-      res.status(500).json({ message: "Failed to update profile", error: error.message });
+      res
+        .status(500)
+        .json({ message: "Failed to update profile", error: error.message });
     }
   });
 
   return router;
 }
-
 
 async function startServer() {
   try {

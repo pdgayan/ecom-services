@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const crypto = require("crypto");
+const jwt = require("jsonwebtoken");
 const pg = require("pg");
 pg.types.setTypeParser(1700, (val) => (val === null ? null : parseFloat(val)));
 
@@ -17,12 +18,64 @@ app.use(express.json());
 // Fetch DB credentials from AWS Secrets Manager
 // Uses IRSA automatically - no AWS keys needed here
 // ---------------------------------------------------
-const secretsClient = new SecretsManagerClient({ 
-  region: process.env.AWS_REGION || "us-east-1" 
+const secretsClient = new SecretsManagerClient({
+  region: process.env.AWS_REGION || "us-east-1",
 });
 
 let dbCredentials = null;
 
+function normalizeRole(role) {
+  if (!role) {
+    return null;
+  }
+
+  const normalized = String(role).toLowerCase();
+
+  if (normalized === "buyer" || normalized === "customer") {
+    return "buyer";
+  }
+
+  if (normalized === "seller" || normalized === "admin") {
+    return "seller";
+  }
+
+  return null;
+}
+
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers["authorization"];
+
+  if (!authHeader) {
+    return res.status(401).json({ message: "Authorization header missing" });
+  }
+
+  const parts = authHeader.split(" ");
+
+  if (parts.length !== 2 || parts[0] !== "Bearer") {
+    return res.status(401).json({ message: "Invalid authorization format" });
+  }
+
+  try {
+    const decoded = jwt.verify(
+      parts[1],
+      process.env.JWT_SECRET || "development-secret",
+    );
+    req.user = decoded;
+    next();
+  } catch (error) {
+    return res.status(403).json({ message: "Invalid or expired token" });
+  }
+}
+
+function requireSeller(req, res, next) {
+  const role = normalizeRole(req.user?.role);
+
+  if (role !== "seller") {
+    return res.status(403).json({ message: "Seller access required" });
+  }
+
+  next();
+}
 
 async function getDbCredentials() {
   if (dbCredentials) {
@@ -42,7 +95,6 @@ async function getDbCredentials() {
   dbCredentials = JSON.parse(response.SecretString);
   return dbCredentials;
 }
-
 
 // ---------------------------------------------------
 // Resolves DB configurations
@@ -78,7 +130,6 @@ async function resolveDbConfig() {
     password: secret.password,
   };
 }
-
 
 function buildProductPayload(body, existingId) {
   return {
@@ -144,74 +195,87 @@ function productRouter() {
     }
   });
 
-  router.post("/products", async (req, res) => {
-    try {
-      if (!req.body || !req.body.name) {
-        return res.status(400).json({ message: "name is required" });
+  router.post(
+    "/products",
+    authenticateToken,
+    requireSeller,
+    async (req, res) => {
+      try {
+        if (!req.body || !req.body.name) {
+          return res.status(400).json({ message: "name is required" });
+        }
+
+        const payload = buildProductPayload(req.body);
+        payload.created_at = new Date();
+
+        const inserted = await app.locals
+          .knex("products")
+          .insert(payload)
+          .returning("*");
+        res.status(201).json(inserted[0] || payload);
+      } catch (err) {
+        res
+          .status(500)
+          .json({ message: "Failed to create product", error: err.message });
       }
+    },
+  );
 
-      const payload = buildProductPayload(req.body);
-      payload.created_at = new Date();
+  router.put(
+    "/products/:id",
+    authenticateToken,
+    requireSeller,
+    async (req, res) => {
+      try {
+        const payload = buildProductPayload(req.body || {}, req.params.id);
+        delete payload.id;
 
-      const inserted = await app.locals
-        .knex("products")
-        .insert(payload)
-        .returning("*");
-      res.status(201).json(inserted[0] || payload);
-    } catch (err) {
-      res
-        .status(500)
-        .json({ message: "Failed to create product", error: err.message });
-    }
-  });
+        const updated = await app.locals
+          .knex("products")
+          .where({ id: req.params.id })
+          .update(payload)
+          .returning("*");
 
-  router.put("/products/:id", async (req, res) => {
-    try {
-      const payload = buildProductPayload(req.body || {}, req.params.id);
-      delete payload.id;
+        if (!updated.length) {
+          return res.status(404).json({ message: "Product not found" });
+        }
 
-      const updated = await app.locals
-        .knex("products")
-        .where({ id: req.params.id })
-        .update(payload)
-        .returning("*");
-
-      if (!updated.length) {
-        return res.status(404).json({ message: "Product not found" });
+        res.json(updated[0]);
+      } catch (err) {
+        res
+          .status(500)
+          .json({ message: "Failed to update product", error: err.message });
       }
+    },
+  );
 
-      res.json(updated[0]);
-    } catch (err) {
-      res
-        .status(500)
-        .json({ message: "Failed to update product", error: err.message });
-    }
-  });
+  router.delete(
+    "/products/:id",
+    authenticateToken,
+    requireSeller,
+    async (req, res) => {
+      try {
+        const deleted = await app.locals
+          .knex("products")
+          .where({ id: req.params.id })
+          .del()
+          .returning("*");
 
-  router.delete("/products/:id", async (req, res) => {
-    try {
-      const deleted = await app.locals
-        .knex("products")
-        .where({ id: req.params.id })
-        .del()
-        .returning("*");
+        if (!deleted.length) {
+          return res.status(404).json({ message: "Product not found" });
+        }
 
-      if (!deleted.length) {
-        return res.status(404).json({ message: "Product not found" });
+        res.json({ message: "Product deleted" });
+      } catch (err) {
+        res
+          .status(500)
+          .json({ message: "Failed to delete product", error: err.message });
       }
-
-      res.json({ message: "Product deleted" });
-    } catch (err) {
-      res
-        .status(500)
-        .json({ message: "Failed to delete product", error: err.message });
-    }
-  });
+    },
+  );
 
   return router;
 }
-
-
 
 // ---------------------------------------------------
 // Examples: fetch credentials once at startup
@@ -258,5 +322,3 @@ async function startServer() {
 }
 
 startServer();
-
-
