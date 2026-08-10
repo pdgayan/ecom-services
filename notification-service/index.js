@@ -5,7 +5,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// POST /notify — body: { userId, message }
+// POST /notifys — body: { userId, message }
 app.post('/notify', (req, res) => {
   const { userId, message } = req.body;
 
