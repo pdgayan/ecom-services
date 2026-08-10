@@ -14,7 +14,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ---------------------------------------------------
+/// ---------------------------------------------------
 // Fetch DB credentials from AWS Secrets Manager
 // Uses IRSA automatically - no AWS keys needed here
 // ---------------------------------------------------

@@ -206,7 +206,7 @@ function authRouter() {
     }
   });
 
-  // Login
+  /// Login
   router.post("/login", async (req, res) => {
     try {
       const { email, password, role } = req.body;
