@@ -1,4 +1,7 @@
-# ecom-backend
+# The Project
+This is a simulation of how a microservices e-commerce application is deployed and operated on AWS. Six independently deployed services run on Amazon Elastic Kubernetes Service (EKS), with each service owning its own RDS PostgreSQL database for strict data isolation. The wider infrastructure leans on AWS native tooling throughout ECR for container image storage, S3 for static frontend hosting and product assets, Secrets Manager for credential management, and IAM with IRSA for fine grained, pod level access control, no long lived credentials anywhere in the system.
+
+# ecom-service
 
 Source code for all six backend microservices and the CI pipeline that builds and ships them. Each service is a self-contained Node.js/Fastify application with its own Dockerfile, database migrations, and package configuration. When a change is pushed to `main` under a service's directory, the corresponding GitHub Actions workflow triggers: authenticates to AWS via OIDC, builds and pushes the container image to ECR, then updates the GitOps repository — which ArgoCD picks up to trigger a rollout.
 
