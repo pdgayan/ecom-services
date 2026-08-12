@@ -1,4 +1,5 @@
 # The Project
+
 This is a simulation of how a microservices e-commerce application is deployed and operated on AWS. Six independently deployed services run on Amazon Elastic Kubernetes Service (EKS), with each service owning its own RDS PostgreSQL database for strict data isolation. The wider infrastructure leans on AWS native tooling throughout ECR for container image storage, S3 for static frontend hosting and product assets, Secrets Manager for credential management, and IAM with IRSA for fine grained, pod level access control, no long lived credentials anywhere in the system.
 
 # ecom-service
@@ -7,42 +8,42 @@ Source code for all six backend microservices and the CI pipeline that builds an
 
 ---
 
-## High-Level Architecture
+## High-Level Architecture (only the main componants is showing)
 
 ```
                          ┌────────────────────────────────────────────────────────────────┐
                          │                        AWS Cloud                               │
-                         │                                                                │
+      S3                 │                                                                │
   ┌──────────┐           │  ┌──────────────────────────────────────────────────────────┐  │
-  │  Browser │──HTTPS───►│  │              EKS Cluster  (private subnets)              │  │
+  │ React app│──HTTPS───►│  │              EKS Cluster  (private subnets)              │  │
   └──────────┘           │  │                                                          │  │
         ▲                │  │   ┌─────────────────────────────────────────────────┐    │  │
-        │                │  │   │           ALB Ingress Controller                │    │  │
-  ┌──────────┐           │  │   └──────┬──────┬──────┬──────┬──────┬─────────────┘    │  │
-  │  React   │           │  │          │      │      │      │      │                  │  │
-  │  App     │           │  │         ▼      ▼      ▼      ▼      ▼                  │  │
-  │  (S3)    │           │  │  ┌──────────┐ ┌──────────┐ ┌──────────┐               │  │
-  └──────────┘           │  │  │   auth   │ │ catalog  │ │   cart   │               │  │
-                         │  │  │ :3001    │ │  :3002   │ │  :3003   │               │  │
-                         │  │  └────┬─────┘ └────┬─────┘ └────┬─────┘               │  │
-                         │  │       │             │             │                    │  │
-                         │  │  ┌──────────┐ ┌──────────┐ ┌──────────┐               │  │
-                         │  │  │  order   │ │ payment  │ │  notif.  │               │  │
-                         │  │  │  :3004   │ │  :3005   │ │  :3006   │               │  │
-                         │  │  └────┬─────┘ └────┬─────┘ └──────────┘               │  │
-                         │  │       │             │                                  │  │
-                         │  └───────┼─────────────┼──────────────────────────────────┘  │
-                         │          │             │                                      │
-                         │  ┌───────▼─────────────▼─────────────────────────────────┐   │
-                         │  │                  RDS PostgreSQL (one per service)      │   │
-                         │  │   authdb │ productdb │ cartdb │ orderdb │ paymentdb    │   │
-                         │  └───────────────────────────────────────────────────────┘   │
-                         │                                                               │
-                         │  ┌──────────────┐  ┌────────────────┐  ┌────────────────┐   │
-                         │  │  ECR  (x6)   │  │ Secrets Manager│  │  IAM + IRSA    │   │
-                         │  │ image repos  │  │  (DB creds)    │  │ (pod-level)    │   │
-                         │  └──────────────┘  └────────────────┘  └────────────────┘   │
-                         └────────────────────────────────────────────────────────────┘
+        │  HTTPS         │  │   │           ALB Ingress Controller                │    │  │
+  ┌──────────┐           │  │   └──────┬──────┬──────┬──────┬──────┬───────────── ┘    │  │
+  │  browser │           │  │          │      │      │      │      │                   │  │
+  │          │           │  │         ▼      ▼      ▼      ▼      ▼                    │  │
+  │          │           │  │  ┌──────────┐ ┌──────────┐ ┌──────────┐                  │  │
+  └──────────┘           │  │  │   auth   │ │ catalog  │ │   cart   │                  │  │
+                         │  │  │ :3001    │ │  :3002   │ │  :3003   │                  │  │
+                         │  │  └────┬─────┘ └────┬─────┘ └────┬─────┘                  │  │
+                         │  │       │             │             │                      │  │
+                         │  │  ┌──────────┐ ┌──────────┐ ┌──────────┐                  │  │
+                         │  │  │  order   │ │ payment  │ │  notif.  │                  │  │
+                         │  │  │  :3004   │ │  :3005   │ │  :3006   │                  │  │
+                         │  │  └────┬─────┘ └────┬─────┘ └──────────┘                  │  │
+                         │  │       │             │                                    │  │
+                         │  └───────┼─────────────┼────────────────────────────────────┘  │
+                         │          │             │                                       │
+                         │  ┌───────▼─────────────▼─────────────────────────────────┐     │
+                         │  │                  RDS PostgreSQL (one per service)      │    │
+                         │  │   authdb │ productdb │ cartdb │ orderdb │ paymentdb    │    │
+                         │  └───────────────────────────────────────────────────────┘     │
+                         │                                                                │
+                         │  ┌──────────────┐  ┌────────────────┐  ┌────────────────┐      │
+                         │  │  ECR  (x6)   │  │ Secrets Manager│  │  IAM + IRSA    │      │
+                         │  │ image repos  │  │  (DB creds)    │  │ (pod-level)    │      │
+                         │  └──────────────┘  └────────────────┘  └────────────────┘      │
+                         └────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -194,6 +195,7 @@ ecom-backend/
 ---
 
 **CI pipeline per service:**
+
 1. Triggered on `push` to `main` scoped to the service directory
 2. Authenticates to AWS using GitHub OIDC — no stored AWS credentials
 3. Builds Docker image and pushes to ECR tagged with the commit SHA
