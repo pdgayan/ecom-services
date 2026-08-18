@@ -26,7 +26,7 @@ const s3Client = new S3Client({
 
 // ---------------------------------------------------
 // Fetch DB credentials from AWS Secrets Manager
-// Uses IRSA automatically - no AWS keys needed here
+// Uses IRSA automatically - no AWS keys needed heres
 // ---------------------------------------------------
 const secretsClient = new SecretsManagerClient({
   region: process.env.AWS_REGION || "us-east-1",
