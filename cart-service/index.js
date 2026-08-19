@@ -13,7 +13,7 @@ function getCart(userId) {
   return carts[userId];
 }
 
-// GET /cart/:userIds
+// GET /cart/:userId
 app.get('/cart/cart/:userId', (req, res) => {
   const cart = getCart(req.params.userId);
   const items = Object.values(cart);
