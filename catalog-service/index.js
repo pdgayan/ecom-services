@@ -201,9 +201,19 @@ async function uploadImageToS3(file) {
 function productRouter() {
   const router = express.Router();
 
-  router.get("/health", (req, res) => {
-    res.json({ status: "ok" });
-  });
+  router.get("/health/live", (req, res) => {
+  res.status(200).json({ status: "alive" });
+});
+
+router.get("/health/ready", async (req, res) => {
+  try {
+    await app.locals.knex.raw("SELECT 1");
+    res.status(200).json({ status: "ready" });
+  } catch (err) {
+    res.status(503).json({ status: "not ready" });
+  }
+});
+
 
   router.get("/products", async (req, res) => {
     try {
