@@ -6,7 +6,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// In-memory orders store
+// In-memory orders stores
 const orders = [];
 
 function generateOrderId() {
