@@ -208,7 +208,7 @@ function productRouter() {
 router.get("/health/ready", async (req, res) => {
   try {
     await app.locals.knex.raw("SELECT 1");
-    res.status(503).json({ status: "not ready" });
+    res.status(200).json({ status: "ready" });
   } catch (err) {
     res.status(503).json({ status: "not ready" });
   }
