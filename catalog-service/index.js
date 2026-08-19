@@ -25,7 +25,7 @@ const s3Client = new S3Client({
 });
 
 // ---------------------------------------------------
-// Fetch DB credentials from AWS Secrets Manager
+// Fetch DB credentials from AWS Secrets Managers
 // Uses IRSA automatically - no AWS keys needed here
 // ---------------------------------------------------
 const secretsClient = new SecretsManagerClient({
